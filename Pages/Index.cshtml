@@ -1,0 +1,6 @@
+@page
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+
+<h1>Web App: @Configuration["AppName"]</h1>
+<h2>Served by @Environment.MachineName</h2>
