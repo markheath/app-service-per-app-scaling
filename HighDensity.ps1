@@ -42,16 +42,42 @@ $WebApp1 = "mheath-hd-1"
 New-AzWebApp -ResourceGroupName $ResourceGroup -AppServicePlan $AppServicePlan `
     -Name $WebApp1
 
-$ArchivePath = "webapp1.zip"
+$ArchivePath = "publish.zip"
 Publish-AzWebApp -ArchivePath $ArchivePath -ResourceGroupName $ResourceGroup -Name $WebApp1
 
 # Get the app we want to configure to use "PerSiteScaling"
 $newapp = Get-AzWebApp -ResourceGroupName $ResourceGroup -Name $WebApp1
 
+
 # Modify the NumberOfWorkers setting to the desired value.
 $newapp.SiteConfig.NumberOfWorkers = 2
+$newapp.SiteConfig.AppSettings.Add( [Microsoft.Azure.Management.WebSites.Models.NameValuePair]::new("AppName","AzureApp1"))
+# Post updated app back to azure
+Set-AzWebApp $newapp
+
+$WebApp2 = "mheath-hd-2"
+New-AzWebApp -ResourceGroupName $ResourceGroup -AppServicePlan $AppServicePlan `
+    -Name $WebApp2
+
+Publish-AzWebApp -ArchivePath $ArchivePath -ResourceGroupName $ResourceGroup -Name $WebApp2
+
+# Get the app we want to configure to use "PerSiteScaling"
+$newapp = Get-AzWebApp -ResourceGroupName $ResourceGroup -Name $WebApp2
+
+
+# Modify the NumberOfWorkers setting to the desired value.
+$newapp.SiteConfig.NumberOfWorkers = 1
+$newapp.SiteConfig.AppSettings.Add( [Microsoft.Azure.Management.WebSites.Models.NameValuePair]::new("AppName","AzureApp2"))
+
 
 # Post updated app back to azure
 Set-AzWebApp $newapp
+
+Start-Process "https://$WebApp1.azurewebsites.net/"
+Start-Process "https://$WebApp2.azurewebsites.net/"
+
+
+(iwr "https://$WebApp1.azurewebsites.net/").content
+(iwr "https://$WebApp2.azurewebsites.net/").content
 
 Remove-AzResourceGroup -Name $ResourceGroup -Force -AsJob
