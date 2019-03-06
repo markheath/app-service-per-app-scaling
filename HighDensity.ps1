@@ -69,9 +69,13 @@ New-HighDensityWebApp -ResourceGroupName $ResourceGroup -AppServicePlanName $App
                     -WebAppName "mheath-hd-2" -NumberOfWorkers 2 -ArchivePath $ArchivePath
 New-HighDensityWebApp -ResourceGroupName $ResourceGroup -AppServicePlanName $AppServicePlan `
                     -WebAppName "mheath-hd-3" -NumberOfWorkers 3 -ArchivePath $ArchivePath
-
+# can we set number of workers higher? - yes, although it seems that we could end up with the four spread across just two of the nodes
+New-HighDensityWebApp -ResourceGroupName $ResourceGroup -AppServicePlanName $AppServicePlan `
+                    -WebAppName "mheath-hd-4" -NumberOfWorkers 4 -ArchivePath $ArchivePath
 
 (iwr "https://mheath-hd-1.azurewebsites.net/").content
 (iwr "https://mheath-hd-3.azurewebsites.net/").content
+
+(iwr "https://mheath-hd-4.azurewebsites.net/").content
 
 Remove-AzResourceGroup -Name $ResourceGroup -Force -AsJob
