@@ -38,46 +38,40 @@ New-AzAppServicePlan -ResourceGroupName $ResourceGroup -Name $AppServicePlan `
 # Enable per-app scaling for the App Service Plan using the "PerSiteScaling" parameter.
 # Set-AzAppServicePlan -ResourceGroupName $ResourceGroup -Name $AppServicePlan -PerSiteScaling $true
 
-$WebApp1 = "mheath-hd-1"
-New-AzWebApp -ResourceGroupName $ResourceGroup -AppServicePlan $AppServicePlan `
-    -Name $WebApp1
+function New-HighDensityWebApp {
+    param( [string]$ResourceGroupName, 
+           [string]$AppServicePlanName, 
+           [string]$WebAppName,
+           [int]$NumberOfWorkers,
+           [string]$ArchivePath)
+
+    New-AzWebApp -ResourceGroupName $ResourceGroup -AppServicePlan $AppServicePlan `
+        -Name $WebAppName
+    
+    Publish-AzWebApp -ArchivePath $ArchivePath -ResourceGroupName $ResourceGroup -Name $WebAppName -Force
+    
+    # Get the app we want to configure to use "PerSiteScaling"
+    $newapp = Get-AzWebApp -ResourceGroupName $ResourceGroup -Name $WebAppName
+
+    # Modify the NumberOfWorkers setting to the desired value.
+    $newapp.SiteConfig.NumberOfWorkers = $NumberOfWorkers
+    $newapp.SiteConfig.AppSettings.Add( [Microsoft.Azure.Management.WebSites.Models.NameValuePair]::new("AppName",$WebAppName))
+    $newapp.SiteConfig.AppSettings.Add( [Microsoft.Azure.Management.WebSites.Models.NameValuePair]::new("NumberOfWorkers",$NumberOfWorkers))
+
+    # Post updated app back to azure
+    Set-AzWebApp $newapp
+}
 
 $ArchivePath = "publish.zip"
-Publish-AzWebApp -ArchivePath $ArchivePath -ResourceGroupName $ResourceGroup -Name $WebApp1
-
-# Get the app we want to configure to use "PerSiteScaling"
-$newapp = Get-AzWebApp -ResourceGroupName $ResourceGroup -Name $WebApp1
-
-
-# Modify the NumberOfWorkers setting to the desired value.
-$newapp.SiteConfig.NumberOfWorkers = 2
-$newapp.SiteConfig.AppSettings.Add( [Microsoft.Azure.Management.WebSites.Models.NameValuePair]::new("AppName","AzureApp1"))
-# Post updated app back to azure
-Set-AzWebApp $newapp
-
-$WebApp2 = "mheath-hd-2"
-New-AzWebApp -ResourceGroupName $ResourceGroup -AppServicePlan $AppServicePlan `
-    -Name $WebApp2
-
-Publish-AzWebApp -ArchivePath $ArchivePath -ResourceGroupName $ResourceGroup -Name $WebApp2
-
-# Get the app we want to configure to use "PerSiteScaling"
-$newapp = Get-AzWebApp -ResourceGroupName $ResourceGroup -Name $WebApp2
+New-HighDensityWebApp -ResourceGroupName $ResourceGroup -AppServicePlanName $AppServicePlan `
+                      -WebAppName "mheath-hd-1" -NumberOfWorkers 1 -ArchivePath $ArchivePath
+New-HighDensityWebApp -ResourceGroupName $ResourceGroup -AppServicePlanName $AppServicePlan `
+                    -WebAppName "mheath-hd-2" -NumberOfWorkers 2 -ArchivePath $ArchivePath
+New-HighDensityWebApp -ResourceGroupName $ResourceGroup -AppServicePlanName $AppServicePlan `
+                    -WebAppName "mheath-hd-3" -NumberOfWorkers 3 -ArchivePath $ArchivePath
 
 
-# Modify the NumberOfWorkers setting to the desired value.
-$newapp.SiteConfig.NumberOfWorkers = 1
-$newapp.SiteConfig.AppSettings.Add( [Microsoft.Azure.Management.WebSites.Models.NameValuePair]::new("AppName","AzureApp2"))
-
-
-# Post updated app back to azure
-Set-AzWebApp $newapp
-
-Start-Process "https://$WebApp1.azurewebsites.net/"
-Start-Process "https://$WebApp2.azurewebsites.net/"
-
-
-(iwr "https://$WebApp1.azurewebsites.net/").content
-(iwr "https://$WebApp2.azurewebsites.net/").content
+(iwr "https://mheath-hd-1.azurewebsites.net/").content
+(iwr "https://mheath-hd-3.azurewebsites.net/").content
 
 Remove-AzResourceGroup -Name $ResourceGroup -Force -AsJob
